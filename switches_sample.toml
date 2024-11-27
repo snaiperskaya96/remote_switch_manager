@@ -4,4 +4,4 @@ addr = "127.0.0.1"
 username = "admin"
 password = "admin"
 id = 1
-device_type = { type = "Shelly" }
+device_type = { status_type = "Shelly" }

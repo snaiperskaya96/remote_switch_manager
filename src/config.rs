@@ -1,4 +1,4 @@
-use argon2::{password_hash::{PasswordHashString, Salt}, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
+use argon2::{password_hash::{PasswordHashString, Salt}, Argon2, PasswordHasher, PasswordVerifier};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
