@@ -154,8 +154,8 @@ async fn turn_off(
 
 pub fn add_devices_routes(state: SafeAppState) -> Router {
     Router::new()
-        .route("/switches", get(get_switches))
-        .route("/turn_on/:id", get(turn_on))
-        .route("/turn_off/:id", get(turn_off))
+        .route("/api/switches", get(get_switches))
+        .route("/api/turn_on/:id", get(turn_on))
+        .route("/api/turn_off/:id", get(turn_off))
         .with_state(state)
 }

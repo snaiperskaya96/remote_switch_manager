@@ -17,6 +17,13 @@ Those might or might not change in the future, dependently on how fast I'll forg
   - No UI for adding a new user.
   - No per-user permissions.
 
+## Cross-Compilation
+Currently being cross-compiled for `armv7-unknown-linux-musleabi` and it works just fine using [cross](https://github.com/cross-rs/cross)
+
+```bash
+cross build --target armv7-unknown-linux-musleabi --release
+```
+
 ## Notes
 Any stored information is saved into a toml file. 
 
