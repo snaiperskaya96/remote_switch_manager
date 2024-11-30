@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 pub struct Config {
     pub user_pass_hash: String,
     pub user_token_expiry_time_seconds: u64,
+    // to overcome musl (i guess?) bug where local timezone is ignored
+    pub timezone_override: Option<String>,
 }
 
 impl Default for Config {
@@ -23,7 +25,7 @@ impl Config {
             use base64::{engine::general_purpose::STANDARD_NO_PAD, Engine as _};
             let hash = STANDARD_NO_PAD.encode(uuid::Uuid::new_v4());
 
-            let toml_s = toml::to_string(&Self { user_pass_hash: hash, user_token_expiry_time_seconds: 60 * 60 * 24 * 7 }).expect("Could not turn Config struct into toml.");
+            let toml_s = toml::to_string(&Self { user_pass_hash: hash, user_token_expiry_time_seconds: 60 * 60 * 24 * 7, ..Default::default() }).expect("Could not turn Config struct into toml.");
             std::fs::write(&config_toml, toml_s).expect("Could not write to config.toml, check permissions");
         }
         return toml::from_str(&std::fs::read_to_string(&config_toml).expect("Could not read config.toml, make sure permissions are alright")).expect("Could not parse config.toml. Double check syntax and/or delete it.");

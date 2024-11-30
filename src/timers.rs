@@ -1,7 +1,8 @@
 use axum::{extract::{Path, State}, routing::{get, post}, Json, Router};
-use chrono::Datelike;
+use chrono::{DateTime, Datelike, Local, Utc};
 use http::StatusCode;
 use serde::{Deserialize, Serialize};
+use chrono_tz::Tz;
 
 use crate::{devices::DeviceStatus, SafeAppState};
 
@@ -17,15 +18,41 @@ pub struct Timer {
 }
 
 impl Timer {
-    pub fn should_be_active(&self) -> bool {
-        let minutes_since_midnight = Timer::minutes_since_midnight();
-        let now = chrono::Local::now();
+    fn now(timezone: &Option<String>) -> DateTime<Tz> {
+        match timezone {
+            Some(tz_name) => {
+                let tz: Tz = tz_name
+                    .parse()
+                    .expect("Invalid timezone name. Use a valid IANA timezone, e.g., 'Europe/Rome'.");
+                
+                let now_utc: DateTime<Utc> = Utc::now();
+                now_utc.with_timezone(&tz)
+            }
+            None => {
+                let local_time = Local::now();
+
+                let tz_name = iana_time_zone::get_timezone()
+                    .expect("Could not determine timezone.");
+
+                let tz: Tz = tz_name
+                .parse()
+                .expect("Invalid timezone name.");
+
+                // Convrt the local time to UTC
+                local_time.with_timezone(&tz)
+            }
+        }
+    }
+    
+    pub fn should_be_active(&self, timezone_override: &Option<String>) -> bool {
+        let minutes_since_midnight = Timer::minutes_since_midnight(timezone_override);
+        let now = Self::now(timezone_override);
         let matches_day = self.days.contains(&(now.weekday().num_days_from_monday() as u8));
         matches_day && minutes_since_midnight >= self.start_time.into() && minutes_since_midnight <= self.end_time.into()
     }
 
-    fn minutes_since_midnight() -> u32 {
-        let now = chrono::Local::now();
+    fn minutes_since_midnight(timezone_override: &Option<String>) -> u32 {
+        let now = Timer::now(timezone_override);
 
         let tomorrow_midnight = now.date_naive().and_hms_opt(0, 0, 1).unwrap();
     
@@ -136,9 +163,9 @@ pub async fn timers_task(state: SafeAppState) {
     loop {
         {
             let mut lock = state.write().await;
-            let config = &mut *lock;
-            let timers = &mut config.timers;
-            let switches = &mut config.switches;
+            let state = &mut *lock;
+            let timers = &mut state.timers;
+            let switches = &mut state.switches;
 
             for switch in &mut *switches {
                 let switch_data = switch.get_device_data().clone();
@@ -147,14 +174,14 @@ pub async fn timers_task(state: SafeAppState) {
                         continue;
                     }
 
-                    let should_be_active = timer.should_be_active();
+                    let should_be_active = timer.should_be_active(&state.config.timezone_override);
                     let current_switch_status = switch_data.status.as_ref().unwrap_or(&DeviceStatus::Unknown);
 
                     if should_be_active && current_switch_status == &DeviceStatus::Off {
-                        log::info!("Turning on switch {} for timer {}", switch_data.alias, timer.id);
+                        log::info!("Turning on switch {} because of timer {}", switch_data.alias, timer.id);
                         switch.turn_on().await;
                     } else if !should_be_active && current_switch_status == &DeviceStatus::On {
-                        log::info!("Turning off switch {} for timer {}", switch_data.alias, timer.id);
+                        log::info!("Turning off switch {} because of timer {}", switch_data.alias, timer.id);
                         switch.turn_off().await;
                     }
                 }
