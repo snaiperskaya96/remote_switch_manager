@@ -9,7 +9,7 @@ pub mod shelly;
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(tag = "type")]
-enum Device {
+pub enum Device {
     Shelly,
 }
 

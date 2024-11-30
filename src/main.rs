@@ -1,19 +1,15 @@
-use std::borrow::Cow;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use axum::extract::Path;
 use axum::response::{Html, IntoResponse, Response};
 use axum::{routing::get, Router};
 use devices::{parse_switches_from_file, Switch};
 use http::{header, StatusCode, Uri};
-use rand::distributions::{Alphanumeric, DistString};
 use rust_embed::Embed;
 use timers::{parse_timers_from_file, Timer};
 use tokio::sync::RwLock;
 use users::parse_users_from_file;
 use users::User;
-use users::UsersDb;
 
 pub mod auth;
 pub mod config;
