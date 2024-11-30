@@ -1,10 +1,10 @@
-use axum::{extract::{Path, State}, routing::{get, post}, Json, Router};
 use chrono::{DateTime, Datelike, Local, Utc};
-use http::StatusCode;
 use serde::{Deserialize, Serialize};
 use chrono_tz::Tz;
 
 use crate::{devices::DeviceStatus, SafeAppState};
+
+pub mod http;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase")]
@@ -15,6 +15,7 @@ pub struct Timer {
     pub end_time: u32,   // End time in minutes after midnight
     pub days: Vec<u8>,   // Array of days (0=Sunday, 6=Saturday)
     pub is_active: bool,  
+    pub one_off: bool,
 }
 
 impl Timer {
@@ -44,7 +45,7 @@ impl Timer {
         }
     }
     
-    pub fn should_be_active(&self, timezone_override: &Option<String>) -> bool {
+    pub fn should_be_on(&self, timezone_override: &Option<String>) -> bool {
         let minutes_since_midnight = Timer::minutes_since_midnight(timezone_override);
         let now = Self::now(timezone_override);
         let matches_day = self.days.contains(&(now.weekday().num_days_from_monday() as u8));
@@ -59,23 +60,19 @@ impl Timer {
         let duration = now.naive_local().signed_duration_since(tomorrow_midnight).to_std().unwrap();
         (duration.as_secs() / 60) as _
     }
+
+    pub fn activate(&mut self) {
+        self.is_active = true;
+    }
+
+    pub fn deactivate(&mut self) {
+        self.is_active = false;
+    }
 }
 
 #[derive(Deserialize, Serialize)]
 struct TimersArray {
     timers: Vec<Timer>,
-}
-
-
-pub fn store_timers(timers: &Vec<Timer>) {
-    let timers_toml = std::env::current_exe()
-    .expect("Could not retrieve current_exe path")
-    .parent()
-    .expect("Could not retrieve parent's folder")
-    .join("timers.toml");
-    log::info!("Storing timers into {}", timers_toml.display());
-
-    std::fs::write(timers_toml, toml::to_string(&TimersArray { timers: timers.clone() }).expect("Could not serialize timers array.")).expect("Could not write to timers.toml, check permissions.");
 }
 
 pub fn parse_timers_from_file() -> Vec<Timer> {
@@ -103,59 +100,17 @@ pub fn parse_timers_from_file() -> Vec<Timer> {
     out
 }
 
+pub fn store_timers(timers: &Vec<Timer>) {
+    let timers_toml = std::env::current_exe()
+    .expect("Could not retrieve current_exe path")
+    .parent()
+    .expect("Could not retrieve parent's folder")
+    .join("timers.toml");
+    log::info!("Storing timers into {}", timers_toml.display());
 
-pub async fn get_device_timers(
-    State(state): State<SafeAppState>,
-    Path(id): Path<u32>,
-) -> Result<Json<Vec<Timer>>, (StatusCode, String)> {
-    let mut out = Vec::new();
-
-    for timer in &state.read().await.timers {
-        if timer.switch_id == id {
-            out.push(timer.clone());
-        }
-    }
-
-    Ok(Json(out))
+    std::fs::write(timers_toml, toml::to_string(&TimersArray { timers: timers.clone() }).expect("Could not serialize timers array.")).expect("Could not write to timers.toml, check permissions.");
 }
 
-#[derive(Serialize)]
-struct AddTimerResponse { success: bool }
-
-async fn add_timer(
-    State(state): State<SafeAppState>,
-    Json(mut timer): Json<Timer> 
-) -> Result<Json<AddTimerResponse>, (StatusCode, String)>
-{
-    let mut lock = state.write().await;
-    
-    let new_id = make_timer_id(&lock.timers);
-
-    timer.id = new_id;
-
-    lock.timers.push(timer);
-
-    store_timers(&lock.timers);
-
-    Ok(Json(AddTimerResponse { success: true }))
-}
-
-fn make_timer_id(timers: &Vec<Timer>) -> u32 {
-    let mut id = 0;
-
-    for timer in timers {
-        id = timer.id.max(id);
-    }
-
-    return id + 1;
-}
-
-pub fn add_timers_routes(state: SafeAppState) -> Router {
-    Router::new()
-        .route("/api/timers/:id", get(get_device_timers))
-        .route("/api/timer", post(add_timer))
-        .with_state(state)
-}
 
 pub async fn timers_task(state: SafeAppState) {
     let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(1));
@@ -167,6 +122,8 @@ pub async fn timers_task(state: SafeAppState) {
             let timers = &mut state.timers;
             let switches = &mut state.switches;
 
+            let mut any_timer_changed = false;
+
             for switch in &mut *switches {
                 let switch_data = switch.get_device_data().clone();
                 for timer in &mut *timers {
@@ -174,19 +131,29 @@ pub async fn timers_task(state: SafeAppState) {
                         continue;
                     }
 
-                    let should_be_active = timer.should_be_active(&state.config.timezone_override);
+                    let should_be_on = timer.should_be_on(&state.config.timezone_override);
                     let current_switch_status = switch_data.status.as_ref().unwrap_or(&DeviceStatus::Unknown);
 
-                    if should_be_active && current_switch_status == &DeviceStatus::Off {
+                    if should_be_on && current_switch_status == &DeviceStatus::Off {
                         log::info!("Turning on switch {} because of timer {}", switch_data.alias, timer.id);
                         switch.turn_on().await;
-                    } else if !should_be_active && current_switch_status == &DeviceStatus::On {
+                    } else if !should_be_on && current_switch_status == &DeviceStatus::On {
                         log::info!("Turning off switch {} because of timer {}", switch_data.alias, timer.id);
                         switch.turn_off().await;
+
+                        if timer.one_off {
+                            timer.deactivate();
+                            any_timer_changed = true;
+                        }
                     }
                 }
             }
+
+            if any_timer_changed {
+                store_timers(&state.timers);
+            }
         }
+
         interval.tick().await;
     }
 }

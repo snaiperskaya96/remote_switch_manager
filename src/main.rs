@@ -60,8 +60,8 @@ async fn main() {
         .route("/assets/*file", get(static_handler))
         .with_state(state.clone())
         .merge(auth::add_auth_routes(state.clone()))
-        .merge(devices::add_devices_routes(state.clone()))
-        .merge(timers::add_timers_routes(state.clone()))
+        .merge(devices::http::add_devices_routes(state.clone()))
+        .merge(timers::http::add_timers_routes(state.clone()))
         .layer(cors)
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),

@@ -75,6 +75,13 @@
                                 <span>Active</span>
                             </label>
                         </div>
+
+                        <div>
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" v-model="form.oneOff" class="text-blue-500" />
+                                <span>One-Off</span>
+                            </label>
+                        </div>
                     </div>
 
                     <!-- Action Buttons -->
@@ -104,6 +111,7 @@ export interface ITimerInterface {
     endTime: number; // End time in number of minutes from midnight
     days: number[]; // Array of days (0=Monday, 6=Sunday)
     isActive: boolean; // Whether the timer is currently active
+    oneOff: boolean; // Whether the timer is deactivated after the first time it fires
 }
 
 export default defineComponent({
@@ -120,6 +128,7 @@ export default defineComponent({
             endTime: "",
             days: [] as number[],
             isActive: true,
+            oneOff: false,
         });
 
         const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -148,6 +157,7 @@ export default defineComponent({
                 endTime: timeToMinutes(form.endTime),
                 days: [...form.days],
                 isActive: form.isActive,
+                oneOff: form.oneOff
             };
             if (isEditing.value) {
                 // Edit existing timer
