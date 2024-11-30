@@ -9,7 +9,7 @@ pub mod shelly;
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(tag = "type")]
-enum Device {
+pub enum Device {
     Shelly,
 }
 
@@ -25,6 +25,7 @@ pub enum DeviceStatus {
 pub trait Switch : Send + Sync {
     fn turn_on(&mut self) -> futures::future::BoxFuture<()>;
     fn turn_off(&mut self) -> futures::future::BoxFuture<()>;
+    fn update_status(&mut self) -> futures::future::BoxFuture<()>;
     fn serialize(&self) -> String;
     fn get_device_data(&self) -> &DeviceData;
 }
@@ -158,4 +159,18 @@ pub fn add_devices_routes(state: SafeAppState) -> Router {
         .route("/turn_on/:id", get(turn_on))
         .route("/turn_off/:id", get(turn_off))
         .with_state(state)
+}
+
+pub async fn devices_status_task(state: SafeAppState) {
+    let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(5));
+
+
+    loop {
+        let num_switches = state.read().await.switches.len();
+        for i in 0..num_switches {
+            let mut lock = state.write().await;
+            lock.switches.get_mut(i).unwrap().update_status().await;
+        }
+        interval.tick().await;
+    }
 }

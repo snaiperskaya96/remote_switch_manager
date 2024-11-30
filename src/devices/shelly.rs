@@ -60,33 +60,9 @@ impl ShellySwitch {
             client: reqwest::Client::new(),
         };
 
-        futures::executor::block_on(s.check_status());
+        futures::executor::block_on(s.update_status());
 
         s
-    }
-    
-    async fn check_status(&mut self) {
-        log::info!("Checking switch {}'s status", self.data.alias);
-        if let Ok(res) = self.client
-        .get(format!(
-            "http://{}/rpc/Switch.GetStatus?id={}",
-            self.data.addr, self.data.id
-        ))
-        .send_with_digest_auth(&self.data.username, &self.data.password)
-        .await {
-            match res.json::<GetStatusResponse>().await {
-                Ok(status) => {
-                    if status.output {
-                        self.data.status = Some(super::DeviceStatus::On);
-                    } else {
-                        self.data.status = Some(super::DeviceStatus::Off);
-                    }
-                },
-                Err(e) => {
-                    log::warn!("There was an error while retrieving switch {}'s status: {:?}", self.data.alias, e);
-                },
-            }
-        }
     }
 }
 
@@ -106,7 +82,7 @@ impl Switch for ShellySwitch {
         })
     }
 
-    fn turn_off(&mut self) ->   futures::future::BoxFuture<()> {
+    fn turn_off(&mut self) -> futures::future::BoxFuture<()> {
         Box::pin(async move {
             match self.client
                 .get(format!(
@@ -127,6 +103,32 @@ impl Switch for ShellySwitch {
     
     fn get_device_data(&self) -> &DeviceData {
         &self.data
+    }
+    
+    fn update_status(&mut self) -> futures::future::BoxFuture<()> {
+        Box::pin(async {
+            log::info!("Checking switch {}'s status", self.data.alias);
+            if let Ok(res) = self.client
+            .get(format!(
+                "http://{}/rpc/Switch.GetStatus?id={}",
+                self.data.addr, self.data.id
+            ))
+            .send_with_digest_auth(&self.data.username, &self.data.password)
+            .await {
+                match res.json::<GetStatusResponse>().await {
+                    Ok(status) => {
+                        if status.output {
+                            self.data.status = Some(super::DeviceStatus::On);
+                        } else {
+                            self.data.status = Some(super::DeviceStatus::Off);
+                        }
+                    },
+                    Err(e) => {
+                        log::warn!("There was an error while retrieving switch {}'s status: {:?}", self.data.alias, e);
+                    },
+                }
+            }
+        })
     }
 }
 
