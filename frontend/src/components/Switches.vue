@@ -161,7 +161,7 @@ export default defineComponent({
         };
 
         const API_URL = import.meta.env.VITE_BACKEND_URL;
-        fetch(`${API_URL}/switches`, {
+        fetch(`${API_URL}/api/switches`, {
             headers: getRequestHeaders()
         }).then(x => x.json().then((res: ISwitchInterface[]) => {
             switches.splice(0, switches.length);
@@ -186,7 +186,7 @@ export default defineComponent({
                 if (switchItem) {
                     const API_URL = import.meta.env.VITE_BACKEND_URL;
                     const URI = switchItem.status.type === "On" ? "turn_off" : "turn_on";
-                    fetch(`${API_URL}/${URI}/${switchItem.id}`, {
+                    fetch(`${API_URL}/api/${URI}/${switchItem.id}`, {
                         headers: getRequestHeaders()
                     }).then(x => x.json())
                     .then((x: {success: boolean}) => {

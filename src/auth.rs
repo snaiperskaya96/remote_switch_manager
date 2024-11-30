@@ -20,8 +20,8 @@ pub async fn auth_layer(
     request: Request,
     next: Next,
 ) -> Result<Response, StatusCode> {
-    log::info!("Got request [{}] {} from {}",  request.method().as_str(), request.uri(), addr.to_string());
-    if request.uri() == "/sign_in" || request.method() == Method::OPTIONS {
+    log::info!("Got request [{}] {} from {}",  request.method().as_str(), request.uri().path(), addr.to_string());
+    if !request.uri().path().starts_with("/api/") || request.method() == Method::OPTIONS {
         return Ok(next.run(request).await);
     }
 

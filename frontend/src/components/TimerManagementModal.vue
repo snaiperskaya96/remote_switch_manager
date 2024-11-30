@@ -126,7 +126,7 @@ export default defineComponent({
 
         const fetchTimers = async () => {
             const API_URL = import.meta.env.VITE_BACKEND_URL;
-            fetch(`${API_URL}/timers/${props.switchId}`, {
+            fetch(`${API_URL}/api/timers/${props.switchId}`, {
                 headers: getRequestHeaders()
             }).then(x => x.json())
                 .then((newTimers: ITimerInterface[]) => {
@@ -155,7 +155,7 @@ export default defineComponent({
                 if (index !== -1) timers[index] = newTimer;
             } else {
                 const API_URL = import.meta.env.VITE_BACKEND_URL;
-                fetch(`${API_URL}/timer`, {
+                fetch(`${API_URL}/api/timer`, {
                     headers: getRequestHeaders(),
                     method: 'post',
                     body: JSON.stringify(newTimer)

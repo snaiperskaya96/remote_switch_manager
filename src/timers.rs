@@ -125,8 +125,8 @@ fn make_timer_id(timers: &Vec<Timer>) -> u32 {
 
 pub fn add_timers_routes(state: SafeAppState) -> Router {
     Router::new()
-        .route("/timers/:id", get(get_device_timers))
-        .route("/timer", post(add_timer))
+        .route("/api/timers/:id", get(get_device_timers))
+        .route("/api/timer", post(add_timer))
         .with_state(state)
 }
 
