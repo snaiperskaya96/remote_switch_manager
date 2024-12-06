@@ -6,79 +6,44 @@ on:
       - main
 
 jobs:
-  setup-linux-x64:
-    uses: ./.github/workflows/setup.yml
-    with:
-      target: x86_64-unknown-linux-gnu
+  release:
+    name: Release - ${{ matrix.platform.os-name }}
+    strategy:
+      matrix:
+        platform:
+          - os-name: Linux-x86_64
+            runs-on: ubuntu-20.04
+            target: x86_64-unknown-linux-musl
+            command: build
 
-  build-linux-x64:
-    needs: setup-linux-x64
-    runs-on: ubuntu-latest
+          - os-name: Linux-aarch64
+            runs-on: ubuntu-20.04
+            target: aarch64-unknown-linux-musl
+            command: build
+
+          - os-name: Windows-x86_64
+            runs-on: windows-latest
+            target: x86_64-pc-windows-msvc
+            command: build
+
+    runs-on: ${{ matrix.platform.runs-on }}
     steps:
-      - name: Build Linux x64
-        run: cross build --release --target x86_64-unknown-linux-gnu
-      - name: Upload Linux x64 Artifact
-        uses: actions/upload-artifact@v3
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Build binary
+        uses: houseabsolute/actions-rust-cross@v0
         with:
-          name: linux-x64-binary
-          path: target/x86_64-unknown-linux-gnu/release/remote_switch_manager
-
-  setup-windows-x64:
-    uses: ./.github/workflows/setup.yml
-    with:
-      target: x86_64-pc-windows-msvc
-
-  build-windows-x64:
-    needs: setup-windows-x64
-    runs-on: windows-latest
-    steps:
-      - name: Build Windows x64
-        run: cross build --release --target x86_64-pc-windows-msvc
-      - name: Upload Windows x64 Artifact
-        uses: actions/upload-artifact@v3
+          command: ${{ matrix.platform.command }}
+          target: ${{ matrix.platform.target }}
+          args: "--locked --release"
+          strip: true
+      - name: Rename binary 
+        run: mv target/${{ matrix.platform.target }}/release/remote_switch_manager target/${{ matrix.platform.target }}/release/aarch64_remote_switch_manager
+        if: matrix.platform.target == 'aarch64-unknown-linux-musl'
+      - name: Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: windows-x64-binary
-          path: target/x86_64-pc-windows-msvc/release/remote_switch_manager.exe
-
-  setup-armv7:
-    uses: ./.github/workflows/setup.yml
-    with:
-      target: armv7-unknown-linux-musleabi
-
-  build-armv7:
-    needs: setup-armv7
-    runs-on: ubuntu-latest
-    steps:
-      - name: Build ARMv7
-        run: cross build --release --target armv7-unknown-linux-musleabi
-      - name: Upload ARMv7 Artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: armv7-binary
-          path: target/armv7-unknown-linux-musleabi/release/remote_switch_manager
-
-  create-release:
-    needs: [build-linux-x64, build-windows-x64, build-armv7]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download Linux x64 Binary
-        uses: actions/download-artifact@v3
-        with:
-          name: linux-x64-binary
-          path: ./binaries/linux-x64
-      - name: Download Windows x64 Binary
-        uses: actions/download-artifact@v3
-        with:
-          name: windows-x64-binary
-          path: ./binaries/windows-x64
-      - name: Download ARMv7 Binary
-        uses: actions/download-artifact@v3
-        with:
-          name: armv7-binary
-          path: ./binaries/armv7
-      - name: Create GitHub Release
-        uses: ncipollo/release-action@v1
-        with:
-          artifacts: "./binaries/*/remote_switch_manager*"
-          name: "Release ${{ github.sha }}"
-          omitBody: true
+          files: |
+            target/${{ matrix.platform.target }}/release/(aarch64_)?remote_switch_manager(\.exe)?
+          fail_on_unmatched_files: false
+          tag_name: "v${{ github.sha }}"
