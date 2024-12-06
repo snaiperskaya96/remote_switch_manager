@@ -37,6 +37,7 @@ pub struct GetStatusTemperature {
     pub t_f: f64,
 }
 
+#[derive(Debug)]
 pub struct ShellySwitch {
     data: DeviceData,
     client: reqwest::Client,

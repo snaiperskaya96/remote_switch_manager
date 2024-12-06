@@ -6,14 +6,14 @@ use crate::SafeAppState;
 pub mod shelly;
 pub mod http;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(tag = "type")]
 pub enum Device {
     Shelly,
 }
 
 
-#[derive(Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(tag = "type")]
 pub enum DeviceStatus {
     On,
@@ -48,7 +48,7 @@ impl From<&DeviceData> for DeviceDataSafe {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DeviceData {
     pub alias: String,
     pub addr: String,
