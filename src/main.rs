@@ -120,7 +120,10 @@ where
                 let mime = mime_guess::from_path(path).first_or_octet_stream();
                 ([(header::CONTENT_TYPE, mime.as_ref())], content.data).into_response()
             }
-            None => (StatusCode::NOT_FOUND, "404 Not Found").into_response(),
+            None => {
+                log::warn!("Could not find embedded asset {}", path);
+                (StatusCode::NOT_FOUND, "404 File Not Found").into_response()
+            },
         }
     }
 }

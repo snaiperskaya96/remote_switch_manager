@@ -90,7 +90,7 @@ pub fn parse_timers_from_file() -> Vec<Timer> {
             .timers;
         log::info!("Parsed {} timers.", out.len());
     } else {
-        log::info!("No switches.toml found.");
+        log::info!("No timers.toml found.");
     }
 
     out
