@@ -42,7 +42,7 @@ jobs:
         run: npm run build
         working-directory: "frontend"
       - name: Move frontend dist to /public 
-        run: mv frontend/dist public
+        run: mv frontend/dist/* public/
       - name: Build binary
         uses: houseabsolute/actions-rust-cross@v0
         with:
