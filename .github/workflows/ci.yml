@@ -77,15 +77,8 @@ jobs:
           name: armv7-binary
           path: ./binaries/armv7
       - name: Create GitHub Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: ncipollo/release-action@v1
         with:
-          tag_name: ${{ github.sha }}
-          release_name: Release ${{ github.sha }}
-          body: |
-            Release binaries for commit ${{ github.sha }}.
-          files: |
-            ./binaries/linux-x64/remote_switch_manager
-            ./binaries/windows-x64/remote_switch_manager.exe
-            ./binaries/armv7/remote_switch_manager
+          artifacts: "./binaries/*/remote_switch_manager*"
+          name: "Release ${{ github.sha }}"
+          omitBody: true
