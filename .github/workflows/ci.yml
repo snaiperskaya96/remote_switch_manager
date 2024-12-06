@@ -1,46 +1,79 @@
-name: Build Release Binaries
+name: Build and Release Binaries
 
 on:
-  push
+  push:
+    branches:
+      - main
+
 jobs:
   build-linux-x64:
-    runs-on: ubuntu-latest
+    uses: ./.github/workflows/setup.yml
+    with:
+      target: x86_64-unknown-linux-gnu
     steps:
-      - uses: actions/checkout@v3
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          target: x86_64-unknown-linux-gnu
-      - name: Install cross
-        run: cargo install cross
       - name: Build
         run: cross build --release --target x86_64-unknown-linux-gnu
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: linux-x64-binary
+          path: target/x86_64-unknown-linux-gnu/release/remote_switch_manager
 
   build-windows-x64:
-    runs-on: windows-latest
+    uses: ./.github/workflows/setup.yml
+    with:
+      target: x86_64-pc-windows-msvc
     steps:
-      - uses: actions/checkout@v3
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          target: x86_64-pc-windows-msvc
-      - name: Install cross
-        run: cargo install cross
       - name: Build
         run: cross build --release --target x86_64-pc-windows-msvc
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: windows-x64-binary
+          path: target/x86_64-pc-windows-msvc/release/remote_switch_manager.exe
 
   build-armv7:
-    runs-on: ubuntu-latest
+    uses: ./.github/workflows/setup.yml
+    with:
+      target: armv7-unknown-linux-musleabi
     steps:
-      - uses: actions/checkout@v3
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          target: armv7-unknown-linux-musleabi
-      - name: Install cross
-        run: cargo install cross
       - name: Build
         run: cross build --release --target armv7-unknown-linux-musleabi
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: armv7-binary
+          path: target/armv7-unknown-linux-musleabi/release/remote_switch_manager
+
+  create-release:
+    needs: [build-linux-x64, build-windows-x64, build-armv7]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Linux x64 Binary
+        uses: actions/download-artifact@v3
+        with:
+          name: linux-x64-binary
+          path: ./binaries/linux-x64
+      - name: Download Windows x64 Binary
+        uses: actions/download-artifact@v3
+        with:
+          name: windows-x64-binary
+          path: ./binaries/windows-x64
+      - name: Download ARMv7 Binary
+        uses: actions/download-artifact@v3
+        with:
+          name: armv7-binary
+          path: ./binaries/armv7
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.sha }}
+          release_name: Release ${{ github.sha }}
+          body: |
+            Release binaries for commit ${{ github.sha }}.
+          files: |
+            ./binaries/linux-x64/remote_switch_manager
+            ./binaries/windows-x64/remote_switch_manager.exe
+            ./binaries/armv7/remote_switch_manager
