@@ -30,6 +30,19 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          cache: "npm"
+          cache-dependency-path: "frontend"
+      - name: Install Frontend Deps
+        run: npm install
+        working-directory: "frontend"
+      - name: Build Frontend
+        run: npm run build
+        working-directory: "frontend"
+      - name: Move frontend dist to /public 
+        run: mv frontend/dist public
       - name: Build binary
         uses: houseabsolute/actions-rust-cross@v0
         with:
