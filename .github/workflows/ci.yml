@@ -6,40 +6,52 @@ on:
       - main
 
 jobs:
-  build-linux-x64:
+  setup-linux-x64:
     uses: ./.github/workflows/setup.yml
     with:
       target: x86_64-unknown-linux-gnu
+
+  build-linux-x64:
+    needs: setup-linux-x64
+    runs-on: ubuntu-latest
     steps:
-      - name: Build
+      - name: Build Linux x64
         run: cross build --release --target x86_64-unknown-linux-gnu
-      - name: Upload Artifact
+      - name: Upload Linux x64 Artifact
         uses: actions/upload-artifact@v3
         with:
           name: linux-x64-binary
           path: target/x86_64-unknown-linux-gnu/release/remote_switch_manager
 
-  build-windows-x64:
+  setup-windows-x64:
     uses: ./.github/workflows/setup.yml
     with:
       target: x86_64-pc-windows-msvc
+
+  build-windows-x64:
+    needs: setup-windows-x64
+    runs-on: windows-latest
     steps:
-      - name: Build
+      - name: Build Windows x64
         run: cross build --release --target x86_64-pc-windows-msvc
-      - name: Upload Artifact
+      - name: Upload Windows x64 Artifact
         uses: actions/upload-artifact@v3
         with:
           name: windows-x64-binary
           path: target/x86_64-pc-windows-msvc/release/remote_switch_manager.exe
 
-  build-armv7:
+  setup-armv7:
     uses: ./.github/workflows/setup.yml
     with:
       target: armv7-unknown-linux-musleabi
+
+  build-armv7:
+    needs: setup-armv7
+    runs-on: ubuntu-latest
     steps:
-      - name: Build
+      - name: Build ARMv7
         run: cross build --release --target armv7-unknown-linux-musleabi
-      - name: Upload Artifact
+      - name: Upload ARMv7 Artifact
         uses: actions/upload-artifact@v3
         with:
           name: armv7-binary
