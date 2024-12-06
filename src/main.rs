@@ -16,6 +16,7 @@ pub mod config;
 pub mod devices;
 pub mod timers;
 pub mod users;
+pub mod storage;
 
 #[derive(Default)]
 pub struct AppState {
@@ -23,6 +24,20 @@ pub struct AppState {
     pub users: Vec<User>,
     pub switches: Vec<Box<dyn Switch>>,
     pub timers: Vec<Timer>,
+}
+
+impl AppState {
+    pub fn new() -> Self {
+        let config = config::Config::new();
+        let users = parse_users_from_file(&config);
+
+        Self {
+            config,
+            users,
+            switches: parse_switches_from_file(),
+            timers: parse_timers_from_file(),
+        }
+    }
 }
 
 pub type SafeAppState = Arc<RwLock<AppState>>;
@@ -37,12 +52,7 @@ async fn main() {
     )
     .expect("Unable to init termlogger");
 
-    let mut state = AppState::default();
-    state.switches = parse_switches_from_file();
-    state.timers = parse_timers_from_file();
-    state.users = parse_users_from_file(&state.config);
-
-    let state = Arc::new(RwLock::new(state));
+    let state = Arc::new(RwLock::new(AppState::new()));
 
     {
         let state = state.clone();

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use rand::distributions::{Alphanumeric, DistString};
 use serde::{Deserialize, Serialize};
 
-use crate::config::Config;
+use crate::{config::Config, storage::get_storage_path};
 
 #[derive(PartialEq, Debug, Default, Serialize, Deserialize)]
 pub struct User {
@@ -27,7 +27,7 @@ impl User {
 }
 
 pub fn parse_users_from_file(config: &Config) -> Vec<User> {
-    let users_toml: std::path::PathBuf = std::env::current_exe().expect("Could not retrieve current_exe path").parent().expect("Could not retrieve parent's folder").join("users.toml");
+    let users_toml: std::path::PathBuf = get_storage_path().join("users.toml");
     log::info!("Looking for {}", users_toml.display());
 
     if !std::path::Path::exists(&users_toml) {

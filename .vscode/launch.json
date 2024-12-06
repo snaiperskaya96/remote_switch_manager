@@ -7,34 +7,34 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'thermostats_backend'",
+            "name": "Debug executable 'remote_switch_manager'",
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=thermostats_backend",
-                    "--package=thermostats_backend"
+                    "--bin=remote_switch_manager",
+                    "--package=remote_switch_manager"
                 ],
                 "filter": {
-                    "name": "thermostats_backend",
+                    "name": "remote_switch_manager",
                     "kind": "bin"
                 }
             },
-            "args": [],
+            "args": ["C:\\Users\\Jury\\Documents\\dev\\remote_switch_manager"],
             "cwd": "${workspaceFolder}"
         },
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in executable 'thermostats_backend'",
+            "name": "Debug unit tests in executable 'remote_switch_manager'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
-                    "--bin=thermostats_backend",
-                    "--package=thermostats_backend"
+                    "--bin=remote_switch_manager",
+                    "--package=remote_switch_manager"
                 ],
                 "filter": {
-                    "name": "thermostats_backend",
+                    "name": "remote_switch_manager",
                     "kind": "bin"
                 }
             },

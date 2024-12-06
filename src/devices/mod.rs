@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use shelly::ShellySwitch;
 
-use crate::SafeAppState;
+use crate::{storage::get_storage_path, SafeAppState};
 
 pub mod shelly;
 pub mod http;
@@ -61,11 +61,7 @@ pub struct DeviceData {
 }
 
 pub fn parse_switches_from_file() -> Vec<Box<dyn Switch>> {
-    let switches_toml = std::env::current_exe()
-        .expect("Could not retrieve current_exe path")
-        .parent()
-        .expect("Could not retrieve parent's folder")
-        .join("switches.toml");
+    let switches_toml = get_storage_path().join("switches.toml");
     log::info!("Looking for {}", switches_toml.display());
 
     let mut out = Vec::new();

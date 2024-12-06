@@ -2,7 +2,7 @@ use chrono::{DateTime, Datelike, Local, Utc};
 use serde::{Deserialize, Serialize};
 use chrono_tz::Tz;
 
-use crate::{devices::DeviceStatus, SafeAppState};
+use crate::{devices::DeviceStatus, storage::get_storage_path, SafeAppState};
 
 pub mod http;
 
@@ -76,11 +76,7 @@ struct TimersArray {
 }
 
 pub fn parse_timers_from_file() -> Vec<Timer> {
-    let timers_toml = std::env::current_exe()
-        .expect("Could not retrieve current_exe path")
-        .parent()
-        .expect("Could not retrieve parent's folder")
-        .join("timers.toml");
+    let timers_toml = get_storage_path().join("timers.toml");
     log::info!("Looking for {}", timers_toml.display());
 
     let mut out = Vec::new();
@@ -101,11 +97,7 @@ pub fn parse_timers_from_file() -> Vec<Timer> {
 }
 
 pub fn store_timers(timers: &Vec<Timer>) {
-    let timers_toml = std::env::current_exe()
-    .expect("Could not retrieve current_exe path")
-    .parent()
-    .expect("Could not retrieve parent's folder")
-    .join("timers.toml");
+    let timers_toml = get_storage_path().join("timers.toml");
     log::info!("Storing timers into {}", timers_toml.display());
 
     std::fs::write(timers_toml, toml::to_string(&TimersArray { timers: timers.clone() }).expect("Could not serialize timers array.")).expect("Could not write to timers.toml, check permissions.");
