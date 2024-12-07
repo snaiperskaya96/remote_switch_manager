@@ -120,11 +120,19 @@ pub async fn sign_in(
 }
 
 pub async fn is_logged_in(
-    State(_state): State<SafeAppState>,
+    headers: HeaderMap,
+    State(state): State<SafeAppState>,
 ) -> Result<(), (StatusCode, String)> {
-    // Any non-logged in request is protected by the auth layer so need for special stuff in here.
-    // If we reached this point it means the player is logged in.
-    Ok(())
+    match get_token(&headers) {
+        Some(token) => {
+            if token_is_valid(&state, token).await {
+                Ok(())
+            } else {
+                Err((StatusCode::UNAUTHORIZED, "Invalid Auth Token".to_owned()))
+            }
+        },
+        None => Err((StatusCode::UNAUTHORIZED, "Invalid Auth Token".to_owned())),
+    }
 }
 
 pub fn add_auth_routes(state: SafeAppState) -> Router {
