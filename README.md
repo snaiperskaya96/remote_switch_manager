@@ -2,7 +2,7 @@
 
 Remote Switch Manager (RMS) is a badly named application used to interact with network-able devices that have the ability of being switched on and off.
 
-The frontend has heavenly produced by our overlord AI, as I can't be bothered to spend days learning what's the current everchanging new way of making UI and what shiny new library to use.
+The frontend has largerly been produced by our overlord AI, as I can't be bothered to spend days learning what's the current everchanging new way of making UI and what shiny new library to use.
 Backend is 95% human made.
 
 ## Features
