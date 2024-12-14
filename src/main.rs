@@ -55,8 +55,11 @@ async fn main() {
     let state = Arc::new(RwLock::new(AppState::new()));
 
     {
-        let state = state.clone();
-        tokio::spawn(async move { timers::timers_task(state).await });
+        let timers_state = state.clone();
+        tokio::spawn(async move { timers::timers_task(timers_state).await });
+
+        let devices_state = state.clone();
+        tokio::spawn(async move { devices::devices_status_task(devices_state).await });
     }
 
     let cors = tower_http::cors::CorsLayer::new()

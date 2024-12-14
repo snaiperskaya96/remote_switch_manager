@@ -105,7 +105,6 @@ fn create_switch_from_data(device_data: DeviceData) -> Box<dyn Switch> {
 pub async fn devices_status_task(state: SafeAppState) {
     let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(5));
 
-
     loop {
         let num_switches = state.read().await.switches.len();
         for i in 0..num_switches {

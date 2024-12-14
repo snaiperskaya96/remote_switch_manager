@@ -108,7 +108,7 @@ impl Switch for ShellySwitch {
     
     fn update_status(&mut self) -> futures::future::BoxFuture<()> {
         Box::pin(async {
-            log::info!("Checking switch {}'s status", self.data.alias);
+            log::debug!("Checking switch {}'s status", self.data.alias);
             if let Ok(res) = self.client
             .get(format!(
                 "http://{}/rpc/Switch.GetStatus?id={}",
