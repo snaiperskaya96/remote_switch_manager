@@ -1,6 +1,6 @@
-use axum::{extract::{Path, State}, routing::get, Json, Router};
+use axum::{extract::{Path, State}, routing::{get, post}, Json, Router};
 use http::StatusCode;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::SafeAppState;
 
@@ -52,11 +52,52 @@ async fn turn_off(
     }
 }
 
+#[derive(Deserialize)]
+struct ReqSwitchState {
+    state: String,
+}
+
+async fn post_switch(
+    State(state): State<SafeAppState>,
+    Path(id): Path<u32>,
+    Json(switch_state): Json<ReqSwitchState> 
+) -> Result<Json<TurnOnOffResponse>, (StatusCode, String)> {
+    let mut lock = state.write().await;
+
+    match lock.switches.iter_mut().find(|x| x.get_device_data().id == id) {
+        Some(switch) => {
+            if switch_state.state == "on".to_owned() {
+                switch.turn_on().await;
+            } else if switch_state.state == "off".to_owned() {
+                switch.turn_off().await;
+            }
+            Ok(Json(TurnOnOffResponse { success: true}))
+        },
+        None => Err((StatusCode::BAD_REQUEST, "Could not find any switch with the given id".to_owned())),
+    }
+}
+
+async fn get_switch(
+    State(state): State<SafeAppState>,
+    Path(id): Path<u32>,
+) -> Result<Json<DeviceDataSafe>, (StatusCode, String)> {
+    let mut lock = state.write().await;
+
+    match lock.switches.iter_mut().find(|x| x.get_device_data().id == id) {
+        Some(switch) => {
+            Ok(Json(switch.get_device_data().into()))
+        },
+        None => Err((StatusCode::BAD_REQUEST, "Could not find any switch with the given id".to_owned())),
+    }
+}
+
 pub fn add_devices_routes(state: SafeAppState) -> Router {
     Router::new()
         .route("/api/switches", get(get_switches))
         .route("/api/turn_on/:id", get(turn_on))
         .route("/api/turn_off/:id", get(turn_off))
+        .route("/api/switch/:id", post(post_switch))
+        .route("/api/switch/:id", get(get_switch))
         .with_state(state)
 }
 
