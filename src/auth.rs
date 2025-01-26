@@ -27,7 +27,27 @@ pub async fn auth_layer(
 
     match get_token(&headers) {
         Some(token) => {
-            if token_is_valid(&state, token).await {
+            if token.starts_with("Basic ") {
+                let b64 = token.split_at("Basic ".len()).1;
+                use base64::{engine::general_purpose::STANDARD_NO_PAD, Engine as _};
+                let credentials = STANDARD_NO_PAD.decode(b64).unwrap_or(Vec::new());
+                let parts = credentials.split_at(credentials.iter().enumerate().find(|x| *x.1 == ':' as u8).unwrap_or((0, &0)).0);
+
+                let user = String::from_utf8(parts.0.to_vec()).unwrap_or("".to_owned());
+                let pass = String::from_utf8(parts.1.to_vec()).unwrap_or("".to_owned());
+
+                if let Some(_) = get_user_by_credentials(state.clone(), &user, &pass).await {
+                    Ok(next.run(request).await)
+                } else {
+                    log::info!(
+                        "Unauthorized request to uri {} from client {}. No matching token found for basic auth {}",
+                        request.uri(),
+                        addr.to_string(),
+                        b64
+                    );
+                    Err(StatusCode::UNAUTHORIZED)
+                }
+            } else if token_is_valid(&state, token).await {
                 // refresh token ?
                 Ok(next.run(request).await)
             } else {
@@ -78,31 +98,37 @@ pub struct SignInResponse {
     token: Option<String>,
 }
 
+async fn get_user_by_credentials(state: SafeAppState, username: &String, password: &String) -> Option<usize> {
+    let lock = state.read().await;
+    for (id, user) in lock.users.iter().enumerate() {
+        if user.username == *username {
+            if lock
+                .config
+                .verify_password(&password, &user.password)
+            {
+                return Some(id);
+            }
+            break;
+        }
+    }
+
+    None
+}
+
 pub async fn sign_in(
     State(state): State<SafeAppState>,
     Json(payload): Json<SignInRequest>,
 ) -> Result<Json<SignInResponse>, (StatusCode, String)> {
-    let mut user_ref = None;
-    let mut expiry_time = tokio::time::Instant::now();
+    let user_ref = get_user_by_credentials(state.clone(), &payload.username, &payload.password).await;
+    let expiry_time;
 
     {
         let lock = state.read().await;
-        for (id, user) in lock.users.iter().enumerate() {
-            if user.username == payload.username {
-                if lock
-                    .config
-                    .verify_password(&payload.password, &user.password)
-                {
-                    user_ref = Some(id);
-                    expiry_time = tokio::time::Instant::now()
-                        .checked_add(tokio::time::Duration::from_secs(
-                            lock.config.user_token_expiry_time_seconds,
-                        ))
-                        .unwrap();
-                }
-                break;
-            }
-        }
+        expiry_time = tokio::time::Instant::now()
+        .checked_add(tokio::time::Duration::from_secs(
+            lock.config.user_token_expiry_time_seconds,
+        ))
+        .unwrap();
     }
 
     if let Some(logged_in_user) = user_ref {
