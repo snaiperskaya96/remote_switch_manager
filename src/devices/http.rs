@@ -97,7 +97,7 @@ pub fn add_devices_routes(state: SafeAppState) -> Router {
     Router::new()
         .route("/api/switches", get(get_switches))
         .route("/api/turn_on/{id}", get(turn_on))
-        .route("/api/turn_off/id}", get(turn_off))
+        .route("/api/turn_off/{id}", get(turn_off))
         .route("/api/switch/{id}", post(post_switch))
         .route("/api/switch/{id}", get(get_switch))
         .with_state(state)
