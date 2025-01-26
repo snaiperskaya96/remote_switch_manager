@@ -63,6 +63,7 @@ async fn post_switch(
     Json(switch_state): Json<ReqSwitchState> 
 ) -> Result<Json<TurnOnOffResponse>, (StatusCode, String)> {
     let mut lock = state.write().await;
+    println!("POST");
 
     match lock.switches.iter_mut().find(|x| x.get_device_data().id == id) {
         Some(switch) => {
@@ -81,6 +82,7 @@ async fn get_switch(
     State(state): State<SafeAppState>,
     Path(id): Path<u32>,
 ) -> Result<Json<DeviceDataSafe>, (StatusCode, String)> {
+    println!("GET");
     let mut lock = state.write().await;
 
     match lock.switches.iter_mut().find(|x| x.get_device_data().id == id) {
@@ -94,10 +96,10 @@ async fn get_switch(
 pub fn add_devices_routes(state: SafeAppState) -> Router {
     Router::new()
         .route("/api/switches", get(get_switches))
-        .route("/api/turn_on/:id", get(turn_on))
-        .route("/api/turn_off/:id", get(turn_off))
-        .route("/api/switch/:id", post(post_switch))
-        .route("/api/switch/:id", get(get_switch))
+        .route("/api/turn_on/{id}", get(turn_on))
+        .route("/api/turn_off/id}", get(turn_off))
+        .route("/api/switch/{id}", post(post_switch))
+        .route("/api/switch/{id}", get(get_switch))
         .with_state(state)
 }
 
