@@ -29,14 +29,11 @@ pub async fn auth_layer(
         Some(token) => {
             if token.starts_with("Basic ") {
                 let b64 = token.split_at("Basic ".len()).1;
-                use base64::{engine::general_purpose::STANDARD_NO_PAD, Engine as _};
-                let credentials = STANDARD_NO_PAD.decode(b64).unwrap_or(Vec::new());
-                let parts = credentials.split_at(credentials.iter().enumerate().find(|x| *x.1 == ':' as u8).unwrap_or((0, &0)).0);
+                use base64::{engine::general_purpose::STANDARD, Engine as _};
+                let credentials = String::from_utf8(STANDARD.decode(b64).unwrap_or(Vec::new())).unwrap_or("".to_owned());
+                let parts = credentials.split_once(':').unwrap_or(("", ""));
 
-                let user = String::from_utf8(parts.0.to_vec()).unwrap_or("".to_owned());
-                let pass = String::from_utf8(parts.1.to_vec()).unwrap_or("".to_owned());
-
-                if let Some(_) = get_user_by_credentials(state.clone(), &user, &pass).await {
+                if let Some(_) = get_user_by_credentials(state.clone(), &parts.0.to_owned(), &parts.1.to_owned()).await {
                     Ok(next.run(request).await)
                 } else {
                     log::info!(
